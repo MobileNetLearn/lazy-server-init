@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # lazy-server-init
-# Do all the stuff I'm too lazy to do when I'm running a new server.
-# check comments for more info -- only tested with Debian 8 (Jessie)(64 bits)
+# Do all the stuff I'm too lazy to do when I'm running a fresh Debian 7/8 server.
+# Only tested with Debian 7 (Wheezy) (64 bits) & Debian 8 (Jessie) (64 bits).
+# Check comments for more info.
 
 # check for root
 if [[ $EUID -ne 0 ]]
@@ -23,7 +24,6 @@ if [[ $ISROOTPWD =~ ^[Yy]$ ]]
 then
 	passwd
 fi
-
 # plan a weekly update 
 echo "Planning a weekly system update..."
 cat > /etc/cron.weekly/apt-update <<- _EOF
@@ -35,6 +35,7 @@ cat > /etc/cron.weekly/apt-update <<- _EOF
 _EOF
 chmod +x /etc/cron.weekly/apt-update
 # update system
+echo "Updating system..."
 /etc/cron.weekly/apt-update
 
 #######
