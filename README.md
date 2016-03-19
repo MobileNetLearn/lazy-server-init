@@ -5,7 +5,9 @@ Tested on Debian 8 (Jessie)(64 bits).
 
 ## Installation
 
-wget https://git.io/vaP0Z -O lazy-server-init.sh && bash lazy-server-init.sh
+Log in as root on your freshly installed server, then run the following command:
+
+`wget https://git.io/vaP0Z -O lazy-server-init.sh && bash lazy-server-init.sh`
 
 ## Notice
 
