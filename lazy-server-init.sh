@@ -72,17 +72,9 @@ echo 'AllowGroups ssh-users' >> /etc/ssh/sshd_config
 echo "Initializing iptables..."
 apt-get install iptables
 # create a light, non-bulletproof iptables configuration
-cat > /etc/init.d/firewall <<- _EOF
-	#!/bin/bash
-	### BEGIN INIT INFO
-	# Provides:          firewall
-	# Required-Start:    $remote_fs $syslog
-	# Required-Stop:     $remote_fs $syslog
-	# Default-Start:     2 3 4 5
-	# Default-Stop:      0 1 6
-	# Short-Description: iptables
-	# Description:       load iptables configuration
-	### END INIT INFO
+# will be launched at startup
+cat > /etc/network/if-pre-up.d/iptables <<- _EOF
+	#!/bin/sh
 	# clean current rules
 	iptables -t filter -F 
 	iptables -t filter -X 
@@ -99,11 +91,9 @@ cat > /etc/init.d/firewall <<- _EOF
 	# allow SSH
 	iptables -t filter -A INPUT -p tcp --dport ${SSHPORT} -j ACCEPT
 _EOF
-chmod +x /etc/init.d/firewall
-# execute the rules
-/etc/init.d/firewall
-# launch these at startup
-update-rc.d firewall defaults
+chmod +x /etc/network/if-pre-up.d/iptables
+# execute the rules now
+/etc/network/if-pre-up.d/iptables
 
 ############
 # FAIL2BAN #
@@ -208,11 +198,22 @@ then
 	# update iptables
 	echo "Adding iptables rules..."
 	OVPNPORT=$(grep '^port ' /etc/openvpn/server.conf | cut -d " " -f 2)
-	cat >> /etc/init.d/firewall <<- _EOF
+	cat >> /etc/network/if-pre-up.d/iptables <<- _EOF
 		# Allow OpenVPN
-		iptables -t filter -A INPUT -p tcp --dport ${OVPNPORT} -j ACCEPT
+		iptables -t filter -A INPUT -p udp --dport ${OVPNPORT} -j ACCEPT
+		iptables -A INPUT -i tun+ -j ACCEPT
+		iptables -A FORWARD -i tun+ -j ACCEPT
+		iptables -A FORWARD -i tun+ -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+		iptables -A FORWARD -i eth0 -o tun+ -m state --state RELATED,ESTABLISHED -j ACCEPT
+		iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
 	_EOF
-	/etc/init.d/firewall
+	# appy rules
+	/etc/network/if-pre-up.d/iptables
+	if [[ $ISF2B =~ ^[Yy]$ ]]
+	then
+		# re-apply fail2ban rules
+		/etc/init.d/fail2ban restart
+	fi
 fi
 
 echo "******** The End ********"
