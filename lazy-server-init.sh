@@ -122,10 +122,15 @@ read -p "Install a private local DNS server (Unbound)? [Y/n] " ISDNS
 ISDNS="${ISDNS:-y}" 
 if [[ $ISDNS =~ ^[Yy]$ ]]
 then
+	echo "Removing others preinstalled DNS servers to avoid conflicts..."
+	# Debian 7 # try to remove BIND9 who might be preinstalled on the server
+	apt-get purge --auto-remove -y bind9
 	# install Unbound DNS server
 	echo "Installing Unbound DNS server..."
 	apt-get install -y unbound
+	# get the up to date listing of primary root DNS servers
 	wget ftp://FTP.INTERNIC.NET/domain/named.cache -O /var/lib/unbound/root.hints
+	# backup original Unbound configuration
 	mv /etc/unbound/unbound.conf /etc/unbound/unbound.conf.backup
 	# init the configuration file for a local use
 	cat > /etc/unbound/unbound.conf <<- _EOF

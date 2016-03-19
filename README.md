@@ -7,7 +7,7 @@ Tested on Debian 8 (Jessie)(64 bits).
 
 Log in as root on your freshly installed server, then run the following command:
 
-`wget https://git.io/vaP0Z -O lazy-server-init.sh && bash lazy-server-init.sh`
+`wget https://git.io/vaP0Z --no-check-certificate -O lazy-server-init.sh && bash lazy-server-init.sh`
 
 ## Notice
 
