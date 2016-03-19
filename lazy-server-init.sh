@@ -17,7 +17,7 @@ fi
 #################
 
 # change root password
-read -p "Change root password? (Y/n) " ISROOTPWD
+read -p "Change root password? [Y/n] " ISROOTPWD
 ISROOTPWD="${ISROOTPWD:-y}"
 if [[ $ISROOTPWD =~ ^[Yy]$ ]]
 then
@@ -99,7 +99,7 @@ chmod +x /etc/network/if-pre-up.d/iptables
 # FAIL2BAN #
 ############
 
-read -p "Install fail2ban? (Y/n) " ISF2B
+read -p "Install fail2ban? [Y/n] " ISF2B
 ISF2B="${ISF2B:-y}"
 if [[ $ISF2B =~ ^[Yy]$ ]]
 then
@@ -118,7 +118,7 @@ fi
 # UNBOUND DNS #
 ###############
 
-read -p "Install a private local DNS server (Unbound)? (Y/n) " ISDNS
+read -p "Install a private local DNS server (Unbound)? [Y/n] " ISDNS
 ISDNS="${ISDNS:-y}" 
 if [[ $ISDNS =~ ^[Yy]$ ]]
 then
@@ -168,7 +168,7 @@ fi
 # OPENVPN #
 ###########
 
-read -p "Install OpenVPN server? (Y/n) " ISVPN
+read -p "Install OpenVPN server? [Y/n] " ISVPN
 ISVPN="${ISVPN:-y}"
 if [[ $ISVPN =~ ^[Yy]$ ]]
 then
@@ -183,7 +183,7 @@ then
 		sed -e '/dhcp-option DNS/ s/^#*/#/' -i /etc/openvpn/server.conf
 		echo 'push "dhcp-option DNS 10.8.0.1"' >> /etc/openvpn/server.conf
 	fi
-	read -p "Disable OpenVPN server logs? (Y/n) " ISNVPNLOG
+	read -p "Disable OpenVPN server logs? [Y/n] " ISNVPNLOG
 	ISNVPNLOG="${ISNVPNLOG:-y}"
 	if [[ $ISNVPNLOG =~ ^[Yy]$ ]]
 	then
