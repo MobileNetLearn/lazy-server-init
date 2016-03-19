@@ -50,7 +50,7 @@ adduser $USERNAME
 # create the group ssh-users and affect the new user to this group
 addgroup ssh-users
 usermod -a -G ssh-users $USERNAME
-# prepare sshd_config file
+# backup then edit sshd_config file
 cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
 echo >> /etc/ssh/sshd_config
 echo >> /etc/ssh/sshd_config
@@ -213,7 +213,7 @@ then
 		iptables -A FORWARD -i eth0 -o tun+ -m state --state RELATED,ESTABLISHED -j ACCEPT
 		iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
 	_EOF
-	# appy rules
+	# apply rules
 	/etc/network/if-pre-up.d/iptables
 	if [[ $ISF2B =~ ^[Yy]$ ]]
 	then
