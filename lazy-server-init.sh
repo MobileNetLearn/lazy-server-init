@@ -146,7 +146,7 @@ then
 		do-udp: yes
 		do-tcp: yes
 		access-control: 127.0.0.0/8 allow
-		access-control: 10.8.0.0/8 allow
+		access-control: 10.0.0.0/8 allow
 		root-hints: "/var/lib/unbound/root.hints"
 		hide-identity: yes
 		hide-version: yes
@@ -157,7 +157,7 @@ then
 		cache-max-ttl: 86400
 		prefetch: yes
 		private-address: 127.0.0.0/8
-		private-address: 10.8.0.0/8
+		private-address: 10.0.0.0/8
 		unwanted-reply-threshold: 10000
 	_EOF
 	# set the local DNS server as main DNS
