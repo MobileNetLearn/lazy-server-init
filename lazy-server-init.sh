@@ -207,9 +207,10 @@ then
 	# update iptables
 	echo "Adding iptables rules..."
 	OVPNPORT=$(grep '^port ' /etc/openvpn/server.conf | cut -d " " -f 2)
+	OVPNPROTOCOL=$(grep '^proto ' /etc/openvpn/server.conf | cut -d " " -f 2)
 	cat >> /etc/network/if-pre-up.d/iptables <<- _EOF
 		# Allow OpenVPN
-		iptables -t filter -A INPUT -p ${PROTOCOL} --dport ${OVPNPORT} -j ACCEPT
+		iptables -t filter -A INPUT -p ${OVPNPROTOCOL} --dport ${OVPNPORT} -j ACCEPT
 		iptables -A INPUT -i tun+ -j ACCEPT
 		iptables -A FORWARD -i tun+ -j ACCEPT
 		iptables -A FORWARD -i tun+ -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
