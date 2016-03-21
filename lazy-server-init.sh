@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # lazy-server-init
+# https://github.com/naei/lazy-server-init
 # Do all the stuff I'm too lazy to do when I'm running a fresh Debian 7/8 server.
 # Only tested with Debian 7 (Wheezy) (64 bits) & Debian 8 (Jessie) (64 bits).
 # Check comments for more info.
@@ -142,7 +143,7 @@ then
 		interface: 0.0.0.0
 		port: 53
 		do-ip4: yes
-		do-ip6: yes
+		do-ip6: no
 		do-udp: yes
 		do-tcp: yes
 		access-control: 127.0.0.0/8 allow
@@ -178,9 +179,11 @@ read -p "Install OpenVPN server? [Y/n] " ISVPN
 ISVPN="${ISVPN:-y}"
 if [[ $ISVPN =~ ^[Yy]$ ]]
 then
-	# install and configure OpenVPN Server using the awsome Nyr script (https://github.com/Nyr/openvpn-install)
+	# install and configure OpenVPN Server using a fork of the awesome Nyr's script
+	# original: https://github.com/Nyr/openvpn-install
+	# fork: https://github.com/naei/openvpn-install
 	echo "Installing OpenVPN server..."
-	wget git.io/vpn --no-check-certificate -O openvpn-install.sh
+	wget https://git.io/vaMxQ --no-check-certificate -O openvpn-install.sh
 	bash openvpn-install.sh
 	if [[ $ISDNS =~ ^[Yy]$ ]]
 	then
@@ -206,7 +209,7 @@ then
 	OVPNPORT=$(grep '^port ' /etc/openvpn/server.conf | cut -d " " -f 2)
 	cat >> /etc/network/if-pre-up.d/iptables <<- _EOF
 		# Allow OpenVPN
-		iptables -t filter -A INPUT -p udp --dport ${OVPNPORT} -j ACCEPT
+		iptables -t filter -A INPUT -p ${PROTOCOL} --dport ${OVPNPORT} -j ACCEPT
 		iptables -A INPUT -i tun+ -j ACCEPT
 		iptables -A FORWARD -i tun+ -j ACCEPT
 		iptables -A FORWARD -i tun+ -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
