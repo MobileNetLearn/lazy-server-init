@@ -192,17 +192,6 @@ then
 		sed -e '/dhcp-option DNS/ s/^#*/#/' -i /etc/openvpn/server.conf
 		echo 'push "dhcp-option DNS 10.8.0.1"' >> /etc/openvpn/server.conf
 	fi
-	read -p "Disable OpenVPN server logs? [Y/n] " ISNVPNLOG
-	ISNVPNLOG="${ISNVPNLOG:-y}"
-	if [[ $ISNVPNLOG =~ ^[Yy]$ ]]
-	then
-		# disable logging
-		echo "Disabling OpenVPN logging..."
-		echo 'log /dev/null' >> /etc/openvpn/server.conf
-		echo 'status /dev/null' >> /etc/openvpn/server.conf
-		sed -e '/verb / s/^#*/#/' -i /etc/openvpn/server.conf
-		echo 'verb 0' >> /etc/openvpn/server.conf
-	fi
 	/etc/init.d/openvpn restart
 	# update iptables
 	echo "Adding iptables rules..."
