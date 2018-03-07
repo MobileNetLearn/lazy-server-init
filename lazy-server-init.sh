@@ -2,14 +2,14 @@
 
 # lazy-server-init
 # https://github.com/naei/lazy-server-init
-# Do all the stuff I'm too lazy to do when I'm running a fresh Debian 7/8 server.
-# Only tested with Debian 7 (Wheezy) (64 bits) & Debian 8 (Jessie) (64 bits).
+# Do all the stuff I'm too lazy to do when I'm running a fresh Debian 9 server.
+# Developped for Debian 9 (Stretch) (64 bits).
 # Check comments for more info.
 
 # check for root
 if [[ $EUID -ne 0 ]]
 then
-	echo "Sorry dude, you must be logged as root to run this script."
+	echo "You must be logged as root to run this script."
 	echo "Anyway, it should not be used if the server is already configured."
 	exit 1
 fi
@@ -26,13 +26,13 @@ then
 	passwd
 fi
 # plan a weekly update 
-echo "Planning a weekly system update..."
+echo "Planning a weekly system update and upgrade..."
 cat > /etc/cron.weekly/apt-update <<- _EOF
 	#!/bin/sh
-	apt-get -y update
-	apt-get -y upgrade
-	apt-get -y autoremove
-	apt-get -y autoclean
+	apt -y update
+	apt -y upgrade
+	apt -y autoremove
+	apt -y autoclean
 _EOF
 chmod +x /etc/cron.weekly/apt-update
 # update system
@@ -43,39 +43,46 @@ echo "Updating system..."
 # SSH #
 #######
 
-echo "Configuring SSH..."
-# create a new user for SSH
-echo "Creating a new user, SSH root login will be disabled."
-read -e -p "Enter username: " USERNAME
-adduser $USERNAME
-# create the group ssh-users and affect the new user to this group
-addgroup ssh-users
-usermod -a -G ssh-users $USERNAME
-# backup then edit sshd_config file
-cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
-echo >> /etc/ssh/sshd_config
-echo >> /etc/ssh/sshd_config
-# set SSH port
-read -e -p "Enter SSH port: " SSHPORT
-sed -e '/Port 22/ s/^#*/#/' -i /etc/ssh/sshd_config
-echo 'Port' $SSHPORT >> /etc/ssh/sshd_config
-# disable root login
-sed -e '/PermitRootLogin/ s/^#*/#/' -i /etc/ssh/sshd_config
-echo 'PermitRootLogin no' >> /etc/ssh/sshd_config
-# enable SSH for the group ssh-users only
-sed -e '/AllowGroups/ s/^#*/#/' -i /etc/ssh/sshd_config
-echo 'AllowGroups ssh-users' >> /etc/ssh/sshd_config
-/etc/init.d/ssh restart
+read -p "SSH secure: create a new user, change port and disable root login? [Y/n] " ISSSH
+ISSSH="${ISSSH:-y}"
+if [[ $ISSSH =~ ^[Yy]$ ]]
+then
+	echo "Configuring SSH..."
+	# create a new user for SSH
+	echo "Creating a new user, SSH root login will be disabled."
+	read -e -p "Enter username: " USERNAME
+	adduser $USERNAME
+	# create the group ssh-users and affect the new user to this group
+	addgroup ssh-users
+	usermod -a -G ssh-users $USERNAME
+	# backup then edit sshd_config file
+	cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
+	echo >> /etc/ssh/sshd_config
+	echo >> /etc/ssh/sshd_config
+	# set SSH port
+	read -e -p "Enter SSH port: " SSHPORT
+	sed -e '/Port 22/ s/^#*/#/' -i /etc/ssh/sshd_config
+	echo 'Port' $SSHPORT >> /etc/ssh/sshd_config
+	# disable root login
+	sed -e '/PermitRootLogin/ s/^#*/#/' -i /etc/ssh/sshd_config
+	echo 'PermitRootLogin no' >> /etc/ssh/sshd_config
+	# enable SSH for the group ssh-users only
+	sed -e '/AllowGroups/ s/^#*/#/' -i /etc/ssh/sshd_config
+	echo 'AllowGroups ssh-users' >> /etc/ssh/sshd_config
+	/etc/init.d/ssh restart
+else
+	SSHPORT=22
+fi
 
 ############
 # IPTABLES #
 ############
 
 echo "Initializing iptables..."
-apt-get install iptables
+apt install -y iptables
 # create a light, non-bulletproof iptables configuration
 # will be launched at startup
-cat > /etc/network/if-pre-up.d/iptables <<- _EOF
+cat > /root/iptables.rules <<- _EOF
 	#!/bin/sh
 	# clean current rules
 	iptables -t filter -F 
@@ -93,9 +100,14 @@ cat > /etc/network/if-pre-up.d/iptables <<- _EOF
 	# allow SSH
 	iptables -t filter -A INPUT -p tcp --dport ${SSHPORT} -j ACCEPT
 _EOF
-chmod +x /etc/network/if-pre-up.d/iptables
-# execute the rules now
-/etc/network/if-pre-up.d/iptables
+chmod +x /root/iptables.rules
+# execute the rules immediately
+/root/iptables.rules
+# install iptables-persistent to persist these rules after a reboot
+echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+apt install -y iptables-persistent
+
 
 ############
 # FAIL2BAN #
@@ -106,9 +118,10 @@ ISF2B="${ISF2B:-y}"
 if [[ $ISF2B =~ ^[Yy]$ ]]
 then
 	echo "Installing fail2ban..."
-	apt-get install -y fail2ban
+	apt install -y fail2ban
 	cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 	# enable for SSH
+	echo "Enabling SSH rules..."
 	sed -re "/^\[ssh\]$/,/^\[/s/enabled[[:blank:]]*=.*/enabled = true/" -i /etc/fail2ban/jail.local
 	sed -re "/^\[ssh\]$/,/^\[/s/port[[:blank:]]*=.*/port = $SSHPORT/" -i /etc/fail2ban/jail.local
 	sed -re "/^\[ssh-ddos\]$/,/^\[/s/enabled[[:blank:]]*=.*/enabled = true/" -i /etc/fail2ban/jail.local
@@ -116,20 +129,22 @@ then
 	/etc/init.d/fail2ban restart
 fi
 
+
 ###############
 # UNBOUND DNS #
 ###############
 
 read -p "Install a private local DNS server (Unbound)? [Y/n] " ISDNS
-ISDNS="${ISDNS:-y}" 
+ISDNS="${ISDNS:-y}"
+export ISDNS
 if [[ $ISDNS =~ ^[Yy]$ ]]
 then
 	echo "Removing others preinstalled DNS servers to avoid conflicts..."
 	# Debian 7 # try to remove BIND9 who might be preinstalled on the server
-	apt-get purge --auto-remove -y bind9
+	apt purge --auto-remove -y bind9
 	# install Unbound DNS server
 	echo "Installing Unbound DNS server..."
-	apt-get install -y unbound
+	apt install -y unbound
 	# get the up to date listing of primary root DNS servers
 	wget ftp://FTP.INTERNIC.NET/domain/named.cache -O /var/lib/unbound/root.hints
 	# backup original Unbound configuration
@@ -197,7 +212,7 @@ then
 	echo "Adding iptables rules..."
 	OVPNPORT=$(grep '^port ' /etc/openvpn/server.conf | cut -d " " -f 2)
 	OVPNPROTOCOL=$(grep '^proto ' /etc/openvpn/server.conf | cut -d " " -f 2)
-	cat >> /etc/network/if-pre-up.d/iptables <<- _EOF
+	cat >> /root/iptables.rules <<- _EOF
 		# Allow OpenVPN
 		iptables -t filter -A INPUT -p ${OVPNPROTOCOL} --dport ${OVPNPORT} -j ACCEPT
 		iptables -A INPUT -i tun+ -j ACCEPT
@@ -207,7 +222,9 @@ then
 		iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
 	_EOF
 	# apply rules
-	/etc/network/if-pre-up.d/iptables
+	/root/iptables.rules
+	iptables-save > /etc/iptables/rules.v4
+	iptables-save > /etc/iptables/rules.v6
 	if [[ $ISF2B =~ ^[Yy]$ ]]
 	then
 		# re-apply fail2ban rules

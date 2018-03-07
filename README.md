@@ -1,7 +1,6 @@
 ## lazy-server-init
 
-Quickly set up SSH, Unbound, OpenVPN and some basic security on a fresh Debian 7/8 server.
-Only tested with Debian 7 (Wheezy) (64 bits) & Debian 8 (Jessie) (64 bits).
+Quickly set up SSH, Unbound, OpenVPN and some basic security on a fresh Debian 9 (Stretch) server.
 
 ### Installation
 
